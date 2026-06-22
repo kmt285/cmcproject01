@@ -68,9 +68,18 @@ def send_file_to_user(chat_id, file_code):
             elif file_type == 'photo':
                 sent_msg = bot.send_photo(chat_id, file_id, caption=original_caption, parse_mode="HTML", reply_markup=remove_kb)
             
-            # ၅ မိနစ် (စက္ကန့် ၃00) အကြာတွင် ဖျက်ရန်
+            # --- 🔴 အောက်ပါအပိုင်းကို အစားထိုး ပြင်ဆင်ရန် 🔴 ---
             if sent_msg:
+                # ၁။ ဖိုင်ကို ၅ မိနစ် (စက္ကန့် ၃၀၀) အကြာတွင် ဖျက်ရန် Timer
                 threading.Timer(300.0, delete_sent_message, args=[chat_id, sent_msg.message_id]).start()
+                
+                # ၂။ ၅ မိနစ်ပြည့်လျှင် ပျက်မည့်အကြောင်း သတိပေးစာ ပို့ရန်
+                warning_text = "⚠️ <i>ဤဖိုင်သည် ၅ မိနစ်အကြာတွင် အလိုအလျောက် ပျက်သွားပါမည်။/n/n၅ မိနစ်မတိုင်ခင် Forward လုပ်၍သိမ်းထားပါ..</i>"
+                warning_msg = bot.send_message(chat_id, warning_text, parse_mode="HTML")
+                
+                # ၃။ ထိုသတိပေးစာကိုပါ ၅ မိနစ်အကြာတွင် တွဲဖျက်ရန် Timer
+                threading.Timer(300.0, delete_sent_message, args=[chat_id, warning_msg.message_id]).start()
+            # ----------------------------------------------
 
         except Exception as e:
             print(f"Error sending file: {e}")
@@ -203,7 +212,7 @@ def handle_start(message):
             markup = InlineKeyboardMarkup().add(InlineKeyboardButton("⚙️ Admin Control Panel", callback_data="adm_main_menu"))
             bot.send_message(message.chat.id, "👋 မင်္ဂလာပါ Admin! Bot ကို စီမံခန့်ခွဲရန် အောက်ပါ Button ကို နှိပ်ပါ။", reply_markup=markup)
         else:
-            bot.send_message(message.chat.id, "မင်္ဂလာပါ.. Movies တင်ဆက်ပေးသော Bot ဖြစ်ပါတယ်ခင်ဗျာ..")
+            bot.send_message(message.chat.id, "ဒီမိန်းချန်နယ်လေးကိုဂျွိူင်းပေးထားပါဆိူ‌တာမျိူးလေးပဲထည်ပေးပါရပါတယ်ဗျ/n/n https://t.me/relaxingwithmovies2")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('check_'))
 def handle_check_join(call):
