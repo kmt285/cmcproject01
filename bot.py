@@ -85,8 +85,7 @@ def get_admin_keyboard():
     markup.add(
         InlineKeyboardButton("📋 Required Channels စာရင်းကြည့်ရန်", callback_data="adm_list_chan"),
         InlineKeyboardButton("➕ Channel အသစ်ထည့်ရန်", callback_data="adm_add_chan"),
-        InlineKeyboardButton("❌ Channel ပြန်ဖျက်ရန်", callback_data="adm_del_chan"),
-        InlineKeyboardButton("🗑️ File ကုဒ်ဖြင့် ဖျက်ရန်", callback_data="adm_del_file")
+        InlineKeyboardButton("❌ Channel ပြန်ဖျက်ရန်", callback_data="adm_del_chan")
     )
     return markup
 
@@ -263,7 +262,7 @@ def handle_files(message):
     files_collection.insert_one(document_to_save)
 
     link = f"https://t.me/{BOT_USERNAME}?start={file_code}"
-    reply_text = f"✅Successful Saved!\n\n📌 Link :\n<code>{link}</code>"
+    reply_text = f"✅Successful Generated!\n\n📌 Link :\n<code>{link}</code>"
     
     bot.reply_to(message, reply_text, parse_mode="HTML")
 
