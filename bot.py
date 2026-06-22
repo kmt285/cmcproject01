@@ -204,7 +204,7 @@ def handle_start(message):
             
             bot.send_message(
                 message.chat.id, 
-                "⚠️ ဖိုင်ရယူနိုင်ရန် အောက်ပါ Channel ကို Join ပေးပါ။ \n\nJoin ပြီးပါက '✅ Join ပြီးပါပြီ' ကိုနှိပ်ပါ။", 
+                "⚠️ ဖိုင်ရယူနိုင်ရန် အောက်ပါ Channel များကို Join ပေးပါ။ \n\nJoin ပြီးပါက '✅ Join ပြီးပါပြီ' ကိုနှိပ်ပါ။", 
                 reply_markup=markup,
                 parse_mode="Markdown"
             )
@@ -218,7 +218,7 @@ def handle_start(message):
             markup = InlineKeyboardMarkup().add(InlineKeyboardButton("⚙️ Admin Control Panel", callback_data="adm_main_menu"))
             bot.send_message(message.chat.id, "👋 မင်္ဂလာပါ Admin! Bot ကို စီမံခန့်ခွဲရန် အောက်ပါ Button ကို နှိပ်ပါ။", reply_markup=markup)
         else:
-            bot.send_message(message.chat.id, "Bot is working. Please use a file link to get files.")
+            bot.send_message(message.chat.id, "မင်္ဂလာပါ.. Movies တင်ဆက်ပေးသော Bot ဖြစ်ပါတယ်ခင်ဗျာ..")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('check_'))
 def handle_check_join(call):
@@ -228,7 +228,7 @@ def handle_check_join(call):
     unjoined_channels = get_unjoined_channels(user_id)
     
     if unjoined_channels:
-        bot.answer_callback_query(call.id, "Channel ကို Join ရန် လိုအပ်ပါသေးသည်!", show_alert=True)
+        bot.answer_callback_query(call.id, "Channel Join ရန် လိုအပ်ပါသေးသည်!", show_alert=True)
     else:
         bot.delete_message(call.message.chat.id, call.message.message_id)
         send_file_to_user(call.message.chat.id, file_code)
