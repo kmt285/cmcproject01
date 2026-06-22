@@ -10,9 +10,6 @@ TOKEN = os.environ.get("BOT_TOKEN")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 MONGO_URI = os.environ.get("MONGO_URI")
 
-# 🔴 အသစ်ထည့်ထားသော Database Channel ID
-DB_CHANNEL_ID = os.environ.get("DB_CHANNEL_ID") 
-
 # Admin IDs များကို Comma (,) ခြားပြီး ရယူရန်
 admin_ids_env = os.environ.get("ADMIN_IDS", "")
 ADMIN_IDS = [int(i.strip()) for i in admin_ids_env.split(",") if i.strip().isdigit()]
@@ -23,6 +20,7 @@ db = db_client["telegram_file_sharing_bot"]
 files_collection = db["stored_files"]
 channels_collection = db["required_channels"] 
 
+# Database ထဲမှ Channel များကို ပြန်ယူမည့် Function
 def get_required_channels():
     channels = {}
     for doc in channels_collection.find():
@@ -44,51 +42,48 @@ def get_unjoined_channels(user_id):
             unjoined[chat_id] = link 
     return unjoined
 
+# ၅ မိနစ်ပြည့်လျှင် Message ကို ဖျက်မည့် Function
 def delete_sent_message(chat_id, message_id):
     try:
         bot.delete_message(chat_id, message_id)
     except Exception as e:
         print(f"Failed to delete message {message_id}: {e}")
 
-# 🔴 ပြင်ဆင်ထားသော ဖိုင်ပို့သည့် Function (Copy Message အသုံးပြုထားသည်)
 def send_file_to_user(chat_id, file_code):
     file_data = files_collection.find_one({"file_code": file_code})
     
     if file_data:
+        file_id = file_data['file_id']
+        file_type = file_data['file_type']
+        original_caption = file_data.get('original_caption', '') 
+        
         remove_kb = ReplyKeyboardRemove()
         sent_msg = None
         
         try:
-            # စနစ်သစ် (Copy Message) ဖြင့် ပို့ခြင်း
-            if "message_id" in file_data:
-                msg_id = file_data["message_id"]
-                sent_msg = bot.copy_message(chat_id, DB_CHANNEL_ID, msg_id, reply_markup=remove_kb)
-                
-            # စနစ်ဟောင်းလင့်ခ်များ (File ID) အတွက် ချို့ယွင်းမှုမရှိစေရန် ချန်ထားခြင်း
-            else:
-                file_id = file_data['file_id']
-                file_type = file_data['file_type']
-                original_caption = file_data.get('original_caption', '') 
-                
-                if file_type == 'document':
-                    sent_msg = bot.send_document(chat_id, file_id, caption=original_caption, parse_mode="HTML", reply_markup=remove_kb)
-                elif file_type == 'video':
-                    sent_msg = bot.send_video(chat_id, file_id, caption=original_caption, parse_mode="HTML", reply_markup=remove_kb)
-                elif file_type == 'photo':
-                    sent_msg = bot.send_photo(chat_id, file_id, caption=original_caption, parse_mode="HTML", reply_markup=remove_kb)
+            if file_type == 'document':
+                sent_msg = bot.send_document(chat_id, file_id, caption=original_caption, parse_mode="HTML", reply_markup=remove_kb)
+            elif file_type == 'video':
+                sent_msg = bot.send_video(chat_id, file_id, caption=original_caption, parse_mode="HTML", reply_markup=remove_kb)
+            elif file_type == 'photo':
+                sent_msg = bot.send_photo(chat_id, file_id, caption=original_caption, parse_mode="HTML", reply_markup=remove_kb)
             
-            # ၅ မိနစ် (စက္ကန့် ၃၀၀) အကြာတွင် ဖျက်ရန်
+            # --- 🔴 အောက်ပါအပိုင်းကို အစားထိုး ပြင်ဆင်ရန် 🔴 ---
             if sent_msg:
+                # ၁။ ဖိုင်ကို ၅ မိနစ် (စက္ကန့် ၃၀၀) အကြာတွင် ဖျက်ရန် Timer
                 threading.Timer(300.0, delete_sent_message, args=[chat_id, sent_msg.message_id]).start()
                 
+                # ၂။ ၅ မိနစ်ပြည့်လျှင် ပျက်မည့်အကြောင်း သတိပေးစာ ပို့ရန်
                 warning_text = "⚠️ <i>ဤဖိုင်သည် ၅ မိနစ်အကြာတွင် အလိုအလျောက် ပျက်သွားပါမည်။ ၅ မိနစ်မတိုင်ခင် Forward လုပ်၍သိမ်းထားပါ..</i>"
                 warning_msg = bot.send_message(chat_id, warning_text, parse_mode="HTML")
                 
+                # ၃။ ထိုသတိပေးစာကိုပါ ၅ မိနစ်အကြာတွင် တွဲဖျက်ရန် Timer
                 threading.Timer(300.0, delete_sent_message, args=[chat_id, warning_msg.message_id]).start()
+            # ----------------------------------------------
 
         except Exception as e:
             print(f"Error sending file: {e}")
-            bot.send_message(chat_id, "❌ ဖိုင်ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။ (ဖိုင်ဖျက်ခံရခြင်း ဖြစ်နိုင်ပါသည်)")
+            bot.send_message(chat_id, "❌ ဖိုင်ပို့ရာတွင် အခက်အခဲရှိနေပါသည်။")
     else:
         bot.send_message(chat_id, "❌ 404, File not Found! ")
 
@@ -152,6 +147,8 @@ def handle_admin_callbacks(call):
         bot.register_next_step_handler(msg, process_delete_channel)
         bot.answer_callback_query(call.id)
 
+# --- Admin Next Step Handlers ---
+
 def process_add_channel_id(message):
     if message.from_user.id not in ADMIN_IDS: return
     chat_id = message.text.strip()
@@ -179,6 +176,8 @@ def process_delete_channel(message):
         bot.send_message(message.chat.id, f"✅ Channel <code>{chat_id}</code> ကို စာရင်းထဲမှ ဖယ်ရှားပြီးပါပြီ။", parse_mode="HTML", reply_markup=back_kb)
     else:
         bot.send_message(message.chat.id, "❌ အဆိုပါ Channel ID ကို ရှာမတွေ့ပါ။", reply_markup=back_kb)
+
+# --- End Admin Section ---
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
@@ -208,6 +207,7 @@ def handle_start(message):
         send_file_to_user(message.chat.id, file_code)
         
     else:
+        # Admin ဆိုလျှင် Control Panel ခလုတ် တိုက်ရိုက်ပြပေးမည်
         if user_id in ADMIN_IDS:
             markup = InlineKeyboardMarkup().add(InlineKeyboardButton("⚙️ Admin Control Panel", callback_data="adm_main_menu"))
             bot.send_message(message.chat.id, "👋 မင်္ဂလာပါ Admin! Bot ကို စီမံခန့်ခွဲရန် အောက်ပါ Button ကို နှိပ်ပါ။", reply_markup=markup)
@@ -227,32 +227,31 @@ def handle_check_join(call):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         send_file_to_user(call.message.chat.id, file_code)
 
-# 🔴 ပြင်ဆင်ထားသော ဖိုင်လက်ခံသည့် Function (Database Channel သို့ Forward လုပ်ခြင်း)
 @bot.message_handler(content_types=['document', 'video', 'photo'])
 def handle_files(message):
     if message.from_user.id not in ADMIN_IDS:
         return
 
-    # Database Channel ID သတ်မှတ်ထားခြင်း မရှိလျှင် Error ပြမည်
-    if not DB_CHANNEL_ID:
-        bot.reply_to(message, "❌ အက်ဒမင်.. DB_CHANNEL_ID ကို Environment Variable တွင် ထည့်သွင်းထားခြင်း မရှိသေးပါ။")
-        return
+    if message.document:
+        file_id = message.document.file_id
+        file_type = 'document'
+    elif message.video:
+        file_id = message.video.file_id
+        file_type = 'video'
+    elif message.photo:
+        file_id = message.photo[-1].file_id
+        file_type = 'photo'
 
-    try:
-        # Admin ပို့လိုက်သောဖိုင်ကို Database Channel သို့ Copy ကူးထည့်မည်
-        copied_msg = bot.copy_message(DB_CHANNEL_ID, message.chat.id, message.message_id)
-        db_message_id = copied_msg.message_id
-    except Exception as e:
-        bot.reply_to(message, f"❌ Database Channel သို့ ဖိုင်သိမ်းဆည်း၍ မရပါ။ Channel ID မှားယွင်းနေခြင်း (သို့) Bot ကို ထို Channel တွင် Admin မပေးထားခြင်းကြောင့် ဖြစ်နိုင်ပါသည်။\n\nError: {e}")
-        return
+    original_caption = message.html_caption if message.html_caption else ""
 
     file_code = str(uuid.uuid4())[:8]
     
-    # 🔴 File ID အစား Message ID ကို သိမ်းဆည်းပါမည်
     document_to_save = {
         "file_code": file_code,
-        "message_id": db_message_id, 
-        "uploader_id": message.from_user.id
+        "file_id": file_id,
+        "file_type": file_type,
+        "uploader_id": message.from_user.id,
+        "original_caption": original_caption
     }
     files_collection.insert_one(document_to_save)
 
@@ -275,5 +274,5 @@ def run_dummy_server():
 
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
-print("Bot with Copy Message (Thumbnail Fix) is running...")
+print("Bot with Admin Button Dashboard (No File Delete) is running...")
 bot.polling(none_stop=True)
