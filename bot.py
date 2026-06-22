@@ -74,7 +74,7 @@ def send_file_to_user(chat_id, file_code):
                 threading.Timer(300.0, delete_sent_message, args=[chat_id, sent_msg.message_id]).start()
                 
                 # ၂။ ၅ မိနစ်ပြည့်လျှင် ပျက်မည့်အကြောင်း သတိပေးစာ ပို့ရန်
-                warning_text = "⚠️ <i>ဤဖိုင်သည် ၅ မိနစ်အကြာတွင် အလိုအလျောက် ပျက်သွားပါမည်။/n/n၅ မိနစ်မတိုင်ခင် Forward လုပ်၍သိမ်းထားပါ..</i>"
+                warning_text = "⚠️ <i>ဤဖိုင်သည် ၅ မိနစ်အကြာတွင် အလိုအလျောက် ပျက်သွားပါမည်။ ၅ မိနစ်မတိုင်ခင် Forward လုပ်၍သိမ်းထားပါ..</i>"
                 warning_msg = bot.send_message(chat_id, warning_text, parse_mode="HTML")
                 
                 # ၃။ ထိုသတိပေးစာကိုပါ ၅ မိနစ်အကြာတွင် တွဲဖျက်ရန် Timer
