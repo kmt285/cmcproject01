@@ -137,11 +137,6 @@ def handle_admin_callbacks(call):
         msg = bot.send_message(chat_id, "ℹ️ ဖယ်ရှားလိုသော Channel ၏ <b>Chat ID</b> ကို ပေးပို့ပေးပါ:", parse_mode="HTML")
         bot.register_next_step_handler(msg, process_delete_channel)
         bot.answer_callback_query(call.id)
-        
-    elif action == "adm_del_file":
-        msg = bot.send_message(chat_id, "ℹ️ Database မှ ဖျက်ပစ်လိုသော ဖိုင်၏ <b>File Code</b> ကို ပေးပို့ပေးပါ:", parse_mode="HTML")
-        bot.register_next_step_handler(msg, process_delete_file)
-        bot.answer_callback_query(call.id)
 
 # --- Admin Next Step Handlers ---
 
@@ -172,16 +167,6 @@ def process_delete_channel(message):
         bot.send_message(message.chat.id, f"✅ Channel <code>{chat_id}</code> ကို စာရင်းထဲမှ ဖယ်ရှားပြီးပါပြီ။", parse_mode="HTML", reply_markup=back_kb)
     else:
         bot.send_message(message.chat.id, "❌ အဆိုပါ Channel ID ကို ရှာမတွေ့ပါ။", reply_markup=back_kb)
-
-def process_delete_file(message):
-    if message.from_user.id not in ADMIN_IDS: return
-    file_code = message.text.strip()
-    result = files_collection.delete_one({"file_code": file_code})
-    back_kb = InlineKeyboardMarkup().add(InlineKeyboardButton("⚙️ Admin Menu သို့", callback_data="adm_main_menu"))
-    if result.deleted_count > 0:
-        bot.send_message(message.chat.id, f"✅ ဖိုင်ကုဒ် <code>{file_code}</code> ကို Database ထဲမှ အောင်မြင်စွာ ဖျက်ပစ်လိုက်ပါပြီ။", parse_mode="HTML", reply_markup=back_kb)
-    else:
-        bot.send_message(message.chat.id, "❌ အဲ့ဒီ ဖိုင်ကုဒ်ကို Database ထဲမှာ ရှာမတွေ့ပါ။", reply_markup=back_kb)
 
 # --- End Admin Section ---
 
@@ -280,5 +265,5 @@ def run_dummy_server():
 
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
-print("Bot with Admin Button Dashboard is running...")
+print("Bot with Admin Button Dashboard (No File Delete) is running...")
 bot.polling(none_stop=True)
