@@ -212,7 +212,7 @@ def handle_start(message):
             markup = InlineKeyboardMarkup().add(InlineKeyboardButton("⚙️ Admin Control Panel", callback_data="adm_main_menu"))
             bot.send_message(message.chat.id, "👋 မင်္ဂလာပါ Admin! Bot ကို စီမံခန့်ခွဲရန် အောက်ပါ Button ကို နှိပ်ပါ။", reply_markup=markup)
         else:
-            bot.send_message(message.chat.id, "ဒီမိန်းချန်နယ်လေးကိုဂျွိူင်းပေးထားပါဆိူ‌တာမျိူးလေးပဲထည်ပေးပါရပါတယ်ဗျ/n/n https://t.me/relaxingwithmovies2")
+            bot.send_message(message.chat.id, "ဒီမိန်းချန်နယ်လေးကိုဂျွိူင်းထားပေးကြပါဗျ.. https://t.me/relaxingwithmovies2")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('check_'))
 def handle_check_join(call):
