@@ -234,7 +234,7 @@ def handle_copy_command(message):
     
     # Argument ၅ ခု ပြည့်မပြည့် စစ်ဆေးခြင်း (/copy source target start end)
     if len(args) != 5:
-        bot.reply_to(message, "⚠️ <b>အသုံးပြုနည်း မှားယွင်းနေပါသည်။</b>\n\nပုံစံ: <code>/copy &lt;source_ch_id&gt; &lt;target_ch_id&gt; &lt;start_id&gt; &lt;end_id&gt;</code>\nဥပမာ: <code>/copy -100111 -100222 10 50</code>", parse_mode="HTML")
+        bot.reply_to(message, "⚠️ <b>အသုံးပြုနည်း မှားယွင်းနေပါသည်။", parse_mode="HTML")
         return
         
     try:
@@ -244,11 +244,11 @@ def handle_copy_command(message):
         end_msg = int(args[4])
         
         if start_msg > end_msg:
-            bot.reply_to(message, "⚠️ အစနံပါတ် (start_msg) သည် အဆုံးနံပါတ် (end_msg) ထက် ငယ်ရပါမည်။")
+            bot.reply_to(message, "⚠️")
             return
             
     except ValueError:
-        bot.reply_to(message, "⚠️ မက်ဆေ့ခ်ျ ID များကို ဂဏန်းများဖြင့်သာ မှန်ကန်စွာ ထည့်ပေးပါ။")
+        bot.reply_to(message, "⚠️")
         return
 
     # Bot မလေးသွားစေရန် Background Thread ဖြင့် သီးသန့် Run ပေးခြင်း
