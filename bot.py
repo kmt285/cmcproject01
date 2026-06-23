@@ -276,7 +276,7 @@ def handle_check_join(call):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         send_file_to_user(call.message.chat.id, file_code)
 
-# 🔴 ပြင်ဆင်ထားသော ဖိုင်လက်ခံသည့် Function (Database Channel သို့ Forward လုပ်ခြင်း)
+# 🔴 ပြင်ဆင်ထားသော ဖိုင်လက်ခံသည့် Function
 @bot.message_handler(content_types=['document', 'video', 'photo'])
 def handle_files(message):
     if message.from_user.id not in ADMIN_IDS:
@@ -286,6 +286,22 @@ def handle_files(message):
     if not DB_CHANNEL_ID:
         bot.reply_to(message, "❌ အက်ဒမင်.. DB_CHANNEL_ID ကို Environment Variable တွင် ထည့်သွင်းထားခြင်း မရှိသေးပါ။")
         return
+
+    # --- 🔴 ဤနေရာတွင် အသစ်ထပ်ထည့်ပါ (Source Channel စစ်ဆေးခြင်း) ---
+    if message.forward_from_chat and message.forward_from_chat.type == 'channel':
+        forward_chat_id = message.forward_from_chat.id
+        
+        # အရှေ့အဆင့်က မှတ်ထားသော Admin Channels Database ထဲတွင် ရှိမရှိ စစ်ဆေးခြင်း
+        is_admin_channel = bot_channels_collection.find_one({"chat_id": forward_chat_id})
+        
+        if not is_admin_channel:
+            bot.reply_to(message, "❌ ကျေးဇူးပြု၍ Bot ကို Admin ခန့်ထားသော Channel များထဲမှသာ Forward လုပ်၍ ပေးပို့ပါ။")
+            return
+    else:
+        # Channel ကနေ Forward လုပ်တာ မဟုတ်ဘဲ တိုက်ရိုက် Upload တင်လျှင် (သို့) User/Group မှ Forward လုပ်လျှင်
+        bot.reply_to(message, "⚠️ ကျေးဇူးပြု၍ Bot ကို Admin ခန့်ထားသော Channel များထဲမှသာ Forward လုပ်၍ ပေးပို့ပါ။")
+        return
+    # --------------------------------------------------------
 
     try:
         # Admin ပို့လိုက်သောဖိုင်ကို Database Channel သို့ Copy ကူးထည့်မည်
@@ -297,7 +313,6 @@ def handle_files(message):
 
     file_code = str(uuid.uuid4())[:8]
     
-    # 🔴 File ID အစား Message ID ကို သိမ်းဆည်းပါမည်
     document_to_save = {
         "file_code": file_code,
         "message_id": db_message_id, 
