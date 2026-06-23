@@ -5,6 +5,8 @@ import uuid
 import pymongo
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import time
+from telebot.apihelper import ApiTelegramException
 
 TOKEN = os.environ.get("BOT_TOKEN")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
@@ -180,6 +182,79 @@ def process_delete_channel(message):
         bot.send_message(message.chat.id, f"✅ Channel <code>{chat_id}</code> ကို စာရင်းထဲမှ ဖယ်ရှားပြီးပါပြီ။", parse_mode="HTML", reply_markup=back_kb)
     else:
         bot.send_message(message.chat.id, "❌ အဆိုပါ Channel ID ကို ရှာမတွေ့ပါ။", reply_markup=back_kb)
+
+# --- 🔴 နောက်ကွယ်မှ အလုပ်လုပ်မည့် Copy Process (Background Thread) ---
+def background_copy_task(message, source_id, target_id, start_msg, end_msg):
+    bot.send_message(message.chat.id, f"🔄 <b>Copy လုပ်ငန်းစဉ် စတင်နေပါပြီ...</b>\n\nSource: <code>{source_id}</code>\nTarget: <code>{target_id}</code>\nRange: {start_msg} to {end_msg}", parse_mode="HTML")
+    
+    success_count = 0
+    fail_count = 0
+
+    for msg_id in range(start_msg, end_msg + 1):
+        retry = True
+        while retry:
+            try:
+                # Source မှ Target သို့ Copy ကူးခြင်း
+                bot.copy_message(target_id, source_id, msg_id)
+                success_count += 1
+                retry = False
+                
+                # FloodWait မဖြစ်စေရန် ဖိုင်တစ်ခုကူးပြီးတိုင်း ၂ စက္ကန့် နားမည်
+                time.sleep(2) 
+                
+            except ApiTelegramException as e:
+                # FloodWait (Error 429) ဖြစ်ပေါ်ပါက
+                if e.error_code == 429:
+                    sleep_time = 10 # Default 10s
+                    # Telegram မှ စောင့်ခိုင်းသော အချိန်ကို ဆွဲထုတ်ခြင်း
+                    if hasattr(e, 'result_json') and 'parameters' in e.result_json and 'retry_after' in e.result_json['parameters']:
+                        sleep_time = e.result_json['parameters']['retry_after']
+                        
+                    bot.send_message(message.chat.id, f"⚠️ FloodWait ဖြစ်နေပါသည်။ Limit အရ <b>{sleep_time} စက္ကန့်</b> စောင့်ပြီးမှ ဆက်လက်ကူးယူပါမည်။", parse_mode="HTML")
+                    time.sleep(sleep_time + 2) # သတ်မှတ်ချိန်ထက် ၂ စက္ကန့် ပိုစောင့်ပြီးမှ Retry ပြန်လုပ်မည်
+                
+                # မူရင်းဖိုင် ဖျက်ခံရခြင်း၊ မရှိတော့ခြင်းများအတွက် 
+                else:
+                    fail_count += 1
+                    retry = False # ကျော်သွားမည်
+            except Exception as e:
+                fail_count += 1
+                retry = False # ကျော်သွားမည်
+
+    bot.send_message(message.chat.id, f"✅ <b>Copy လုပ်ငန်းစဉ် ပြီးဆုံးပါပြီ။</b>\n\nအောင်မြင်စွာ ကူးယူနိုင်ခဲ့သည်: {success_count} ခု\nဖျက်ထားသောစာ / ကျော်သွားသည်: {fail_count} ခု", parse_mode="HTML")
+
+
+# --- 🔴 Admin Command (/copy) ---
+@bot.message_handler(commands=['copy'])
+def handle_copy_command(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+        
+    args = message.text.split()
+    
+    # Argument ၅ ခု ပြည့်မပြည့် စစ်ဆေးခြင်း (/copy source target start end)
+    if len(args) != 5:
+        bot.reply_to(message, "⚠️ <b>အသုံးပြုနည်း မှားယွင်းနေပါသည်။</b>\n\nပုံစံ: <code>/copy &lt;source_ch_id&gt; &lt;target_ch_id&gt; &lt;start_id&gt; &lt;end_id&gt;</code>\nဥပမာ: <code>/copy -100111 -100222 10 50</code>", parse_mode="HTML")
+        return
+        
+    try:
+        source_id = args[1]
+        target_id = args[2]
+        start_msg = int(args[3])
+        end_msg = int(args[4])
+        
+        if start_msg > end_msg:
+            bot.reply_to(message, "⚠️ အစနံပါတ် (start_msg) သည် အဆုံးနံပါတ် (end_msg) ထက် ငယ်ရပါမည်။")
+            return
+            
+    except ValueError:
+        bot.reply_to(message, "⚠️ မက်ဆေ့ခ်ျ ID များကို ဂဏန်းများဖြင့်သာ မှန်ကန်စွာ ထည့်ပေးပါ။")
+        return
+
+    # Bot မလေးသွားစေရန် Background Thread ဖြင့် သီးသန့် Run ပေးခြင်း
+    t = threading.Thread(target=background_copy_task, args=(message, source_id, target_id, start_msg, end_msg))
+    t.daemon = True
+    t.start()
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
