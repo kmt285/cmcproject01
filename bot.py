@@ -234,7 +234,7 @@ def handle_copy_command(message):
     
     # Argument ၅ ခု ပြည့်မပြည့် စစ်ဆေးခြင်း (/copy source target start end)
     if len(args) != 5:
-        bot.reply_to(message, "⚠️ <b>အသုံးပြုနည်း မှားယွင်းနေပါသည်။", parse_mode="HTML")
+        bot.reply_to(message, "⚠️ <b>အသုံးပြုနည်း မှားယွင်းနေပါသည်။</b>", parse_mode="HTML")
         return
         
     try:
@@ -244,18 +244,18 @@ def handle_copy_command(message):
         end_msg = int(args[4])
         
         if start_msg > end_msg:
-            bot.reply_to(message, "⚠️")
+            bot.reply_to(message, "⚠️ ")
             return
             
     except ValueError:
-        bot.reply_to(message, "⚠️")
+        bot.reply_to(message, "⚠️ ")
         return
 
     # Bot မလေးသွားစေရန် Background Thread ဖြင့် သီးသန့် Run ပေးခြင်း
     t = threading.Thread(target=background_copy_task, args=(message, source_id, target_id, start_msg, end_msg))
     t.daemon = True
     t.start()
-
+    
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     args = message.text.split()
